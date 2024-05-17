@@ -1,0 +1,21 @@
+name: simpeg-benchmarks-mag
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - scipy
+  - matplotlib
+  - verde
+  - tqdm
+  - time
+  # Jupyter
+  - jupyter
+  - jupytext
+  # SimPEG and dependencies
+  - dask
+  - choclo
+  - discretize
+  - pip:
+    - git+https://github.com/simpeg/simpeg.git@334050e7f57350e3efc2b989de83c3f5e045ea64
