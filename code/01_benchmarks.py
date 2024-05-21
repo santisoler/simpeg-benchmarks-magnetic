@@ -20,16 +20,9 @@ from utilities import (
 
 # Define some variables common to all benchmarks
 # ----------------------------------------------
+n_receivers_per_side = [20, 40, 60, 80, 100, 120]
+n_cells_per_axis = [20, 40, 60, 80, 100]
 
-SMALL_PROBLEM = True
-if SMALL_PROBLEM:
-    n_receivers_per_side = [20, 40, 60]
-    n_cells_per_axis = [20, 40, 60]
-else:
-    n_receivers_per_side = [20, 40, 60, 80, 100, 120]
-    n_cells_per_axis = [20, 40, 60, 80, 100]
-
-# Define some variables common to all benchmarks
 height = 100  # height of the observation points
 mesh_spacings = (10, 10, 5)
 
