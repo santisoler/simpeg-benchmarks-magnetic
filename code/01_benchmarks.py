@@ -2,6 +2,7 @@
 Benchmark magnetic simulation changing number of receivers and cells
 """
 
+from pathlib import Path
 import itertools
 import numpy as np
 from simpeg import maps
@@ -41,8 +42,8 @@ n_receivers_values = [n**2 for n in n_receivers_per_side]
 n_cells_values = [n**3 for n in n_cells_per_axis]
 
 iterators = (
-    parallelism,
     engines,
+    parallelism,
     forward_only_values,
     n_receivers_values,
     n_cells_values,
@@ -66,18 +67,22 @@ data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
 
 for index, (
-    parallel,
     engine,
+    parallel,
     forward_only,
     n_receivers,
     n_cells,
 ) in enumerate(pool):
+    if index > 0:
+        print()
+    print("Running benchmark")
+    print("-----------------")
     print(
-        f"parallel: {parallel} "
-        f"engine: {engine} "
-        f"forward_only: {forward_only} "
-        f"n_receivers: {n_receivers} "
-        f"n_cells: {n_cells}"
+        f"  engine: {engine} \n"
+        f"  parallel: {parallel} \n"
+        f"  forward_only: {forward_only} \n"
+        f"  n_receivers: {n_receivers} \n"
+        f"  n_cells: {n_cells}"
     )
 
     grid_shape = tuple(int(np.sqrt(n_receivers)) for _ in range(2))
@@ -111,3 +116,28 @@ for index, (
             kwargs["n_processes"] = 1
 
     benchmarker = SimulationBenchmarker(n_runs=n_runs, **kwargs)
+
+    # Run benchmark
+    runtime, std = benchmarker.benchmark(susceptibility)
+    print(f"   {runtime} +/- {std} s")
+
+    # Save results
+    # results.times.loc[engine, parallel, forward_only, n_receivers, n_cells] = runtime
+    # results.times_std.loc[engine, parallel, forward_only, n_receivers, n_cells] = std
+
+    # Save results
+    indices = dict(
+        engine=engine,
+        parallel=parallel,
+        forward_only=forward_only,
+        n_receivers=n_receivers,
+        n_cells=n_cells,
+    )
+    results.times.loc[indices] = runtime
+    results.times_std.loc[indices] = std
+
+
+results_dir = Path(__file__).parent / ".." / "results"
+if not results_dir.exists():
+    results_dir.mkdir(parents=True)
+results.to_netcdf(results_dir / "benchmarks.nc")

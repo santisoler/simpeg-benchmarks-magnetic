@@ -67,7 +67,8 @@ for index, (parallel, engine) in enumerate(pool):
     print(f"   {runtime} +/- {std} s")
 
     # Save results
-    results.times.loc[engine, parallel] = runtime
-    results.times_std.loc[engine, parallel] = runtime
+    indices = dict(engine=engine, parallel=parallel)
+    results.times.loc[indices] = runtime
+    results.times_std.loc[indices] = std
 
 print(results)
