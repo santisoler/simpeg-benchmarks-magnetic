@@ -92,13 +92,14 @@ for index, (
     survey = create_survey(grid_coords)
 
     # Define benchmarker
+    store_sensitivities = "forward_only" if forward_only else "ram"
     kwargs = dict(
         survey=survey,
         mesh=mesh,
         ind_active=active_cells,
         chiMap=model_map,
         engine=engine,
-        store_sensitivities="ram",
+        store_sensitivities=store_sensitivities,
     )
     if engine == "choclo":
         kwargs["numba_parallel"] = parallel
