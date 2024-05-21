@@ -119,11 +119,6 @@ for index, (
 
     # Run benchmark
     runtime, std = benchmarker.benchmark(susceptibility)
-    print(f"   {runtime} +/- {std} s")
-
-    # Save results
-    # results.times.loc[engine, parallel, forward_only, n_receivers, n_cells] = runtime
-    # results.times_std.loc[engine, parallel, forward_only, n_receivers, n_cells] = std
 
     # Save results
     indices = dict(
