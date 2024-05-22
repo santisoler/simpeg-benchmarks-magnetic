@@ -1,5 +1,7 @@
 """
 Benchmark magnetic simulation changing number of receivers and cells
+
+Run simulation in parallel.
 """
 
 from pathlib import Path
@@ -26,17 +28,21 @@ n_cells_per_axis = [20, 40, 60, 80, 100]
 height = 100  # height of the observation points
 mesh_spacings = (10, 10, 5)
 
+# Create results dir if it doesn't exists
+results_dir = Path(__file__).parent / ".." / "results"
+if not results_dir.exists():
+    results_dir.mkdir(parents=True)
+
+
 # Create iterator
 # ---------------
 engines = ["choclo", "geoana"]
-parallelism = [False, True]
 forward_only_values = [False, True]
 n_receivers_values = [n**2 for n in n_receivers_per_side]
 n_cells_values = [n**3 for n in n_cells_per_axis]
 
 iterators = (
     engines,
-    parallelism,
     forward_only_values,
     n_receivers_values,
     n_cells_values,
@@ -48,10 +54,9 @@ pool = itertools.product(*iterators)
 # ----------
 n_runs = 3
 
-dims = ("engine", "parallel", "forward_only", "n_receivers", "n_cells")
+dims = ("engine", "forward_only", "n_receivers", "n_cells")
 coords = {
     "engine": engines,
-    "parallel": parallelism,
     "forward_only": forward_only_values,
     "n_receivers": n_receivers_values,
     "n_cells": n_cells_values,
@@ -61,7 +66,6 @@ results = create_dataset(dims, coords, data_names)
 
 for index, (
     engine,
-    parallel,
     forward_only,
     n_receivers,
     n_cells,
@@ -72,7 +76,6 @@ for index, (
     print("-----------------")
     print(
         f"  engine: {engine} \n"
-        f"  parallel: {parallel} \n"
         f"  forward_only: {forward_only} \n"
         f"  n_receivers: {n_receivers} \n"
         f"  n_cells: {n_cells}"
@@ -102,12 +105,9 @@ for index, (
         store_sensitivities=store_sensitivities,
     )
     if engine == "choclo":
-        kwargs["numba_parallel"] = parallel
+        kwargs["numba_parallel"] = True
     else:
-        if parallel:
-            kwargs["n_processes"] = None
-        else:
-            kwargs["n_processes"] = 1
+        kwargs["n_processes"] = None
 
     benchmarker = SimulationBenchmarker(n_runs=n_runs, **kwargs)
 
@@ -117,7 +117,6 @@ for index, (
     # Save results
     indices = dict(
         engine=engine,
-        parallel=parallel,
         forward_only=forward_only,
         n_receivers=n_receivers,
         n_cells=n_cells,
@@ -125,8 +124,5 @@ for index, (
     results.times.loc[indices] = runtime
     results.times_std.loc[indices] = std
 
-
-results_dir = Path(__file__).parent / ".." / "results"
-if not results_dir.exists():
-    results_dir.mkdir(parents=True)
-results.to_netcdf(results_dir / "benchmarks.nc")
+    # Write results to file
+    results.to_netcdf(results_dir / "benchmarks_parallel.nc")
