@@ -49,10 +49,8 @@ def create_observation_points(region, shape, height):
     return grid_coords
 
 
-def create_survey(grid_coords, components=None):
+def create_survey(grid_coords, components="tmi"):
     """Create a SimPEG magnetic survey with the observation points."""
-    if components is None:
-        components = ["tmi"]
     receiver_locations = np.array([mkvc(c.ravel().T) for c in grid_coords])
     receivers = simpeg_mag.receivers.Point(receiver_locations.T, components=components)
     source_field = simpeg_mag.UniformBackgroundField(
