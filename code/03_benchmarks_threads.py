@@ -100,10 +100,8 @@ for index, (engine, threads) in enumerate(pool):
         store_sensitivities="ram",
     )
     if engine == "choclo":
-        if threads == 1:
-            kwargs["numba_parallel"] = False
-        else:
-            kwargs["numba_parallel"] = True
+        # Enable parallelization if threads is not set to 1
+        kwargs["numba_parallel"] = threads != 1
         numba.set_num_threads(threads)
     else:
         kwargs["n_processes"] = threads
