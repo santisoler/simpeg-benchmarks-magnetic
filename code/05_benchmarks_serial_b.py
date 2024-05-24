@@ -37,7 +37,7 @@ if not results_dir.exists():
 # Create iterator
 # ---------------
 engines = ["choclo", "geoana"]
-forward_only_values = [False, True]
+forward_only_values = [True, False]
 n_receivers_values = [n**2 for n in n_receivers_per_side]
 n_cells_values = [n**3 for n in n_cells_per_axis]
 
