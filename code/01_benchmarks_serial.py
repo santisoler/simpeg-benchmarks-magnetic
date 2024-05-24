@@ -39,13 +39,13 @@ if not results_dir.exists():
 # ---------------
 forward_only_values = [True, False]
 n_cells_values = [n**3 for n in n_cells_per_axis]
-tmi_values = [True, False]
+fields = ["tmi", "b"]
 engines = ["choclo", "geoana"]
 
 iterators = (
     forward_only_values,
     n_cells_values,
-    tmi_values,
+    fields,
     engines,
 )
 pool = itertools.product(*iterators)
@@ -55,20 +55,21 @@ pool = itertools.product(*iterators)
 # ----------
 n_runs = 3
 
-dims = ("forward_only", "n_cells", "tmi", "engine")
+dims = ("forward_only", "n_cells", "field", "engine")
 coords = {
     "forward_only": forward_only_values,
     "n_cells": n_cells_values,
-    "tmi": tmi_values,
+    "field": fields,
     "engine": engines,
 }
 data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
+results.attrs = dict(n_receivers=np.prod(grid_shape))
 
 for index, (
     forward_only,
     n_cells,
-    tmi,
+    field,
     engine,
 ) in enumerate(pool):
     if index > 0:
@@ -78,7 +79,7 @@ for index, (
     print(
         f"  forward_only: {forward_only} \n"
         f"  n_cells: {n_cells} \n"
-        f"  tmi: {tmi} \n"
+        f"  field: {field} \n"
         f"  engine: {engine}"
     )
 
@@ -91,7 +92,9 @@ for index, (
 
     # Define receivers and survey
     grid_coords = create_observation_points(get_region(mesh), grid_shape, height)
-    components = "tmi" if tmi else ["bx", "by", "bz"]  # choose components
+    components = field
+    if components == "b":
+        components = ["bx", "by", "bz"]
     survey = create_survey(grid_coords, components=components)
 
     # Define benchmarker
@@ -118,7 +121,7 @@ for index, (
     indices = dict(
         forward_only=forward_only,
         n_cells=n_cells,
-        tmi=tmi,
+        field=field,
         engine=engine,
     )
     results.times.loc[indices] = runtime
