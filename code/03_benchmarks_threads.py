@@ -1,5 +1,7 @@
 """
 Benchmark magnetic simulation using different number of threads
+
+Fix number of cells and receivers and vary number of threads.
 """
 
 from pathlib import Path
@@ -21,8 +23,8 @@ from utilities import (
 
 # Define some variables common to all benchmarks
 # ----------------------------------------------
-n_receivers_per_side = 90
-n_cells_per_axis = 80
+n_receivers_per_side = 40
+n_cells_per_axis = 60
 
 height = 100  # height of the observation points
 mesh_spacings = (10, 10, 5)
@@ -55,8 +57,10 @@ grid_coords = create_observation_points(get_region(mesh), grid_shape, height)
 
 available_threads = numba.config.NUMBA_NUM_THREADS
 
-engines = ["choclo", "geoana"]
+forward_only_values = [True, False]
 threads_list = [1, 5, 10, 20, 30, available_threads]
+fields = ["tmi", "b"]
+engines = ["choclo", "geoana"]
 
 if max(threads_list) > available_threads:
     raise RuntimeError(
@@ -65,39 +69,54 @@ if max(threads_list) > available_threads:
         f"the iterator ({max(threads_list)})."
     )
 
-iterators = (engines, threads_list)
+iterators = (forward_only_values, threads_list, fields, engines)
 pool = itertools.product(*iterators)
 
 # Benchmarks
 # ----------
 n_runs = 3
 
-dims = ("engine", "threads")
-coords = {"engine": engines, "threads": threads_list}
+dims = ("forward_only", "threads", "field", "engine")
+coords = {
+    "forward_only": forward_only_values,
+    "threads": threads_list,
+    "field": fields,
+    "engine": engines,
+}
 data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
+results.attrs = dict(n_receivers=np.prod(grid_shape))
 
 
 # Run benchmarks
 # --------------
-for index, (engine, threads) in enumerate(pool):
+for index, (forward_only, threads, field, engine) in enumerate(pool):
     if index > 0:
         print()
     print("Running benchmark")
     print("-----------------")
-    print(f"  engine: {engine} \n" f"  threads: {threads} \n")
+    print(
+        f"  forward_only: {forward_only} \n"
+        f"  threads: {threads} \n"
+        f"  field: {field} \n"
+        f"  engine: {engine}"
+    )
 
     # Define survey
-    survey = create_survey(grid_coords)
+    components = field
+    if components == "b":
+        components = ["bx", "by", "bz"]
+    survey = create_survey(grid_coords, components=components)
 
     # Define benchmarker
+    store_sensitivities = "forward_only" if forward_only else "ram"
     kwargs = dict(
         survey=survey,
         mesh=mesh,
         ind_active=active_cells,
         chiMap=model_map,
         engine=engine,
-        store_sensitivities="ram",
+        store_sensitivities=store_sensitivities,
     )
     if engine == "choclo":
         # Enable parallelization if threads is not set to 1
@@ -112,9 +131,11 @@ for index, (engine, threads) in enumerate(pool):
     runtime, std = benchmarker.benchmark(susceptibility)
 
     # Save results
-    indices = dict(engine=engine, threads=threads)
+    indices = dict(
+        forward_only=forward_only, threads=threads, field=field, engine=engine
+    )
     results.times.loc[indices] = runtime
     results.times_std.loc[indices] = std
 
     # Write results to file
-    results.to_netcdf(results_dir / "benchmarks_threads.nc")
+    results.to_netcdf(results_dir / "benchmarks-threads.nc")
