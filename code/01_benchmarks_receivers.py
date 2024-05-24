@@ -1,7 +1,5 @@
 """
-Benchmark magnetic simulation changing number of receivers and cells
-
-Run simulation in single thread.
+Benchmark magnetic simulation changing number of receivers.
 """
 
 from pathlib import Path
