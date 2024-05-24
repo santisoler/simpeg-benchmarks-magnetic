@@ -1,7 +1,8 @@
 """
 Benchmark magnetic simulation of the b field components.
 
-Run simulation in single thread.
+Change only the number of cells, just to check what happens with the three
+components of the magnetic field.
 """
 
 from pathlib import Path
@@ -22,8 +23,8 @@ from utilities import (
 
 # Define some variables common to all benchmarks
 # ----------------------------------------------
-n_receivers_per_side = [20, 40, 60, 80]
-n_cells_per_axis = [20, 40, 60, 70]
+grid_shape = tuple(90 for _ in range(3))
+n_cells_per_axis = [20, 40, 60, 80, 100]
 
 height = 100  # height of the observation points
 mesh_spacings = (10, 10, 5)
@@ -36,17 +37,12 @@ if not results_dir.exists():
 
 # Create iterator
 # ---------------
-engines = ["choclo", "geoana"]
 forward_only_values = [True, False]
-n_receivers_values = [n**2 for n in n_receivers_per_side]
+parallelization = [False, True]
 n_cells_values = [n**3 for n in n_cells_per_axis]
+engines = ["choclo", "geoana"]
 
-iterators = (
-    engines,
-    forward_only_values,
-    n_receivers_values,
-    n_cells_values,
-)
+iterators = (forward_only_values, parallelization, n_cells_values, engines)
 pool = itertools.product(*iterators)
 
 
@@ -54,34 +50,28 @@ pool = itertools.product(*iterators)
 # ----------
 n_runs = 3
 
-dims = ("engine", "forward_only", "n_receivers", "n_cells")
+dims = ("forward_only", "parallel", "n_cells", "engine")
 coords = {
-    "engine": engines,
     "forward_only": forward_only_values,
-    "n_receivers": n_receivers_values,
+    "parallel": parallelization,
     "n_cells": n_cells_values,
+    "engine": engines,
 }
 data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
 
-for index, (
-    engine,
-    forward_only,
-    n_receivers,
-    n_cells,
-) in enumerate(pool):
+for index, (forward_only, parallel, n_cells, engine) in enumerate(pool):
     if index > 0:
         print()
     print("Running benchmark")
     print("-----------------")
     print(
-        f"  engine: {engine} \n"
         f"  forward_only: {forward_only} \n"
-        f"  n_receivers: {n_receivers} \n"
-        f"  n_cells: {n_cells}"
+        f"  parallel: {parallel} \n"
+        f"  n_cells: {n_cells} \n"
+        f"  engine: {engine}"
     )
 
-    grid_shape = tuple(int(np.sqrt(n_receivers)) for _ in range(2))
     mesh_shape = tuple(int(n_cells ** (1 / 3)) for _ in range(3))
 
     # Define mesh
@@ -105,9 +95,9 @@ for index, (
         store_sensitivities=store_sensitivities,
     )
     if engine == "choclo":
-        kwargs["numba_parallel"] = False
+        kwargs["numba_parallel"] = parallel
     else:
-        kwargs["n_processes"] = 1
+        kwargs["n_processes"] = None if parallel else 1
 
     benchmarker = SimulationBenchmarker(n_runs=n_runs, **kwargs)
 
@@ -116,13 +106,13 @@ for index, (
 
     # Save results
     indices = dict(
-        engine=engine,
         forward_only=forward_only,
-        n_receivers=n_receivers,
+        parallel=parallel,
         n_cells=n_cells,
+        engine=engine,
     )
     results.times.loc[indices] = runtime
     results.times_std.loc[indices] = std
 
     # Write results to file
-    results.to_netcdf(results_dir / "benchmarks_serial_b.nc")
+    results.to_netcdf(results_dir / "benchmarks-b-cells.nc")
