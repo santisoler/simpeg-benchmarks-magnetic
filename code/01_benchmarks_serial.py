@@ -1,7 +1,8 @@
 """
-Benchmark magnetic simulation changing number of receivers and cells
+Benchmark magnetic simulation on a single thread.
 
-Run simulation in single thread.
+Vary number of cells in the mesh, keeping the number of receivers fixed.
+Stick with small systems so we can run these fast.
 """
 
 from pathlib import Path
@@ -22,11 +23,11 @@ from utilities import (
 
 # Define some variables common to all benchmarks
 # ----------------------------------------------
-n_receivers_per_side = [20, 40, 60, 80]
-n_cells_per_axis = [20, 40, 60, 70]
-
-height = 100  # height of the observation points
 mesh_spacings = (10, 10, 5)
+n_cells_per_axis = [10, 20, 30, 40, 50, 60]
+
+grid_shape = (30, 30)  # shape of the receivers grid
+height = 100  # height of the observation points
 
 # Create results dir if it doesn't exists
 results_dir = Path(__file__).parent / ".." / "results"
@@ -36,16 +37,14 @@ if not results_dir.exists():
 
 # Create iterator
 # ---------------
-engines = ["choclo", "geoana"]
 forward_only_values = [True, False]
-n_receivers_values = [n**2 for n in n_receivers_per_side]
 n_cells_values = [n**3 for n in n_cells_per_axis]
+engines = ["choclo", "geoana"]
 
 iterators = (
-    engines,
     forward_only_values,
-    n_receivers_values,
     n_cells_values,
+    engines,
 )
 pool = itertools.product(*iterators)
 
@@ -54,34 +53,30 @@ pool = itertools.product(*iterators)
 # ----------
 n_runs = 3
 
-dims = ("engine", "forward_only", "n_receivers", "n_cells")
+dims = ("forward_only", "n_cells", "engine")
 coords = {
-    "engine": engines,
     "forward_only": forward_only_values,
-    "n_receivers": n_receivers_values,
     "n_cells": n_cells_values,
+    "engine": engines,
 }
 data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
 
 for index, (
-    engine,
     forward_only,
-    n_receivers,
     n_cells,
+    engine,
 ) in enumerate(pool):
     if index > 0:
         print()
     print("Running benchmark")
     print("-----------------")
     print(
-        f"  engine: {engine} \n"
         f"  forward_only: {forward_only} \n"
-        f"  n_receivers: {n_receivers} \n"
-        f"  n_cells: {n_cells}"
+        f"  n_cells: {n_cells} \n"
+        f"  engine: {engine}"
     )
 
-    grid_shape = tuple(int(np.sqrt(n_receivers)) for _ in range(2))
     mesh_shape = tuple(int(n_cells ** (1 / 3)) for _ in range(3))
 
     # Define mesh
@@ -116,13 +111,12 @@ for index, (
 
     # Save results
     indices = dict(
-        engine=engine,
         forward_only=forward_only,
-        n_receivers=n_receivers,
         n_cells=n_cells,
+        engine=engine,
     )
     results.times.loc[indices] = runtime
     results.times_std.loc[indices] = std
 
     # Write results to file
-    results.to_netcdf(results_dir / "benchmarks_serial.nc")
+    results.to_netcdf(results_dir / "benchmarks-serial.nc")
