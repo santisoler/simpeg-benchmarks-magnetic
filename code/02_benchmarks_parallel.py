@@ -1,7 +1,8 @@
 """
-Benchmark magnetic simulation changing number of receivers and cells
+Benchmark magnetic simulation in parallel.
 
-Run simulation in parallel.
+Vary number of cells in the mesh, keeping the number of receivers fixed.
+Run geoana with multiprocessing, leave Dask runs for a separate script.
 """
 
 from pathlib import Path
@@ -22,11 +23,11 @@ from utilities import (
 
 # Define some variables common to all benchmarks
 # ----------------------------------------------
-n_receivers_per_side = [20, 40, 60, 80, 100, 120]
+mesh_spacings = (10, 10, 5)
 n_cells_per_axis = [20, 40, 60, 80, 100]
 
+grid_shape = (60, 60)  # shape of the receivers grid
 height = 100  # height of the observation points
-mesh_spacings = (10, 10, 5)
 
 # Create results dir if it doesn't exists
 results_dir = Path(__file__).parent / ".." / "results"
@@ -36,16 +37,16 @@ if not results_dir.exists():
 
 # Create iterator
 # ---------------
-engines = ["choclo", "geoana"]
 forward_only_values = [True, False]
-n_receivers_values = [n**2 for n in n_receivers_per_side]
 n_cells_values = [n**3 for n in n_cells_per_axis]
+fields = ["tmi", "b"]
+engines = ["choclo", "geoana"]
 
 iterators = (
-    engines,
     forward_only_values,
-    n_receivers_values,
     n_cells_values,
+    fields,
+    engines,
 )
 pool = itertools.product(*iterators)
 
@@ -54,37 +55,36 @@ pool = itertools.product(*iterators)
 # ----------
 n_runs = 3
 
-dims = ("engine", "forward_only", "n_receivers", "n_cells")
+dims = ("forward_only", "n_cells", "field", "engine")
 coords = {
-    "engine": engines,
     "forward_only": forward_only_values,
-    "n_receivers": n_receivers_values,
     "n_cells": n_cells_values,
+    "field": fields,
+    "engine": engines,
 }
 data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
+results.attrs = dict(n_receivers=np.prod(grid_shape))
 
 for index, (
-    engine,
     forward_only,
-    n_receivers,
     n_cells,
+    field,
+    engine,
 ) in enumerate(pool):
     if index > 0:
         print()
     print("Running benchmark")
     print("-----------------")
     print(
-        f"  engine: {engine} \n"
         f"  forward_only: {forward_only} \n"
-        f"  n_receivers: {n_receivers} \n"
-        f"  n_cells: {n_cells}"
+        f"  n_cells: {n_cells} \n"
+        f"  field: {field} \n"
+        f"  engine: {engine}"
     )
 
-    grid_shape = tuple(int(np.sqrt(n_receivers)) for _ in range(2))
-    mesh_shape = tuple(int(n_cells ** (1 / 3)) for _ in range(3))
-
     # Define mesh
+    mesh_shape = tuple(int(n_cells ** (1 / 3)) for _ in range(3))
     mesh, active_cells = create_tensor_mesh(mesh_shape, mesh_spacings)
     n_active_cells = np.sum(active_cells)
     susceptibility = create_susceptibilty(n_active_cells)
@@ -92,7 +92,10 @@ for index, (
 
     # Define receivers and survey
     grid_coords = create_observation_points(get_region(mesh), grid_shape, height)
-    survey = create_survey(grid_coords)
+    components = field
+    if components == "b":
+        components = ["bx", "by", "bz"]
+    survey = create_survey(grid_coords, components=components)
 
     # Define benchmarker
     store_sensitivities = "forward_only" if forward_only else "ram"
@@ -116,13 +119,13 @@ for index, (
 
     # Save results
     indices = dict(
-        engine=engine,
         forward_only=forward_only,
-        n_receivers=n_receivers,
         n_cells=n_cells,
+        field=field,
+        engine=engine,
     )
     results.times.loc[indices] = runtime
     results.times_std.loc[indices] = std
 
     # Write results to file
-    results.to_netcdf(results_dir / "benchmarks_parallel.nc")
+    results.to_netcdf(results_dir / "benchmarks-parallel.nc")
