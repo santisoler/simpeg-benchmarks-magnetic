@@ -23,7 +23,7 @@ from utilities import (
 
 # Define some variables common to all benchmarks
 # ----------------------------------------------
-grid_shape = tuple(90 for _ in range(3))
+grid_shape = tuple(40 for _ in range(3))
 n_cells_per_axis = [20, 40, 60, 80, 100]
 
 height = 100  # height of the observation points
@@ -38,11 +38,10 @@ if not results_dir.exists():
 # Create iterator
 # ---------------
 forward_only_values = [True, False]
-parallelization = [False, True]
 n_cells_values = [n**3 for n in n_cells_per_axis]
 engines = ["choclo", "geoana"]
 
-iterators = (forward_only_values, parallelization, n_cells_values, engines)
+iterators = (forward_only_values, n_cells_values, engines)
 pool = itertools.product(*iterators)
 
 
@@ -50,24 +49,22 @@ pool = itertools.product(*iterators)
 # ----------
 n_runs = 3
 
-dims = ("forward_only", "parallel", "n_cells", "engine")
+dims = ("forward_only", "n_cells", "engine")
 coords = {
     "forward_only": forward_only_values,
-    "parallel": parallelization,
     "n_cells": n_cells_values,
     "engine": engines,
 }
 data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
 
-for index, (forward_only, parallel, n_cells, engine) in enumerate(pool):
+for index, (forward_only, n_cells, engine) in enumerate(pool):
     if index > 0:
         print()
     print("Running benchmark")
     print("-----------------")
     print(
         f"  forward_only: {forward_only} \n"
-        f"  parallel: {parallel} \n"
         f"  n_cells: {n_cells} \n"
         f"  engine: {engine}"
     )
@@ -95,9 +92,9 @@ for index, (forward_only, parallel, n_cells, engine) in enumerate(pool):
         store_sensitivities=store_sensitivities,
     )
     if engine == "choclo":
-        kwargs["numba_parallel"] = parallel
+        kwargs["numba_parallel"] = True
     else:
-        kwargs["n_processes"] = None if parallel else 1
+        kwargs["n_processes"] = None
 
     benchmarker = SimulationBenchmarker(n_runs=n_runs, **kwargs)
 
@@ -107,7 +104,6 @@ for index, (forward_only, parallel, n_cells, engine) in enumerate(pool):
     # Save results
     indices = dict(
         forward_only=forward_only,
-        parallel=parallel,
         n_cells=n_cells,
         engine=engine,
     )
