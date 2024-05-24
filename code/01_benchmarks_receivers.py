@@ -26,6 +26,12 @@ mesh_shape = tuple(70 for _ in range(3))
 height = 100  # height of the observation points
 mesh_spacings = (10, 10, 5)
 
+# Define mesh
+mesh, active_cells = create_tensor_mesh(mesh_shape, mesh_spacings)
+n_active_cells = np.sum(active_cells)
+susceptibility = create_susceptibilty(n_active_cells)
+model_map = maps.IdentityMap(nP=susceptibility.size)
+
 # Create results dir if it doesn't exists
 results_dir = Path(__file__).parent / ".." / "results"
 if not results_dir.exists():
@@ -68,12 +74,6 @@ for index, (forward_only, parallel, n_receivers, engine) in enumerate(pool):
         f"  n_receivers: {n_receivers} \n"
         f"  engine: {engine}"
     )
-
-    # Define mesh
-    mesh, active_cells = create_tensor_mesh(mesh_shape, mesh_spacings)
-    n_active_cells = np.sum(active_cells)
-    susceptibility = create_susceptibilty(n_active_cells)
-    model_map = maps.IdentityMap(nP=susceptibility.size)
 
     # Define receivers and survey
     grid_shape = tuple(int(np.sqrt(n_receivers)) for _ in range(2))

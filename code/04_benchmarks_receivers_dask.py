@@ -32,6 +32,12 @@ results_dir = Path(__file__).parent / ".." / "results"
 if not results_dir.exists():
     results_dir.mkdir(parents=True)
 
+# Define mesh
+mesh, active_cells = create_tensor_mesh(mesh_shape, mesh_spacings)
+n_active_cells = np.sum(active_cells)
+susceptibility = create_susceptibilty(n_active_cells)
+model_map = maps.IdentityMap(nP=susceptibility.size)
+
 
 # Create iterator
 # ---------------
@@ -60,12 +66,6 @@ for index, (forward_only, n_receivers) in enumerate(pool):
     print("Running benchmark")
     print("-----------------")
     print(f"  forward_only: {forward_only} \n" f"  n_receivers: {n_receivers} \n")
-
-    # Define mesh
-    mesh, active_cells = create_tensor_mesh(mesh_shape, mesh_spacings)
-    n_active_cells = np.sum(active_cells)
-    susceptibility = create_susceptibilty(n_active_cells)
-    model_map = maps.IdentityMap(nP=susceptibility.size)
 
     # Define receivers and survey
     grid_shape = tuple(int(np.sqrt(n_receivers)) for _ in range(2))
