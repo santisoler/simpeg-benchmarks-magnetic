@@ -20,7 +20,7 @@ from utilities import (
 
 # Define some variables common to all benchmarks
 # ----------------------------------------------
-grid_shape = tuple(90 for _ in range(3))
+grid_shape = tuple(70 for _ in range(3))
 n_cells_per_axis = [20, 40, 60, 80, 100]
 
 height = 100  # height of the observation points
