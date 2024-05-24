@@ -21,8 +21,8 @@ from utilities import (
 
 # Define some variables common to all benchmarks
 # ----------------------------------------------
-n_receivers_per_side = 90
-n_cells_per_axis = 80
+n_receivers_per_side = 70
+n_cells_per_axis = 40
 
 height = 100  # height of the observation points
 mesh_spacings = (10, 10, 5)
@@ -55,8 +55,8 @@ grid_coords = create_observation_points(get_region(mesh), grid_shape, height)
 
 available_threads = numba.config.NUMBA_NUM_THREADS
 
+threads_list = [1, 5, 10, 20, 30, available_threads][::-1]
 engines = ["choclo", "geoana"]
-threads_list = [1, 5, 10, 20, 30, available_threads]
 
 if max(threads_list) > available_threads:
     raise RuntimeError(
@@ -65,27 +65,27 @@ if max(threads_list) > available_threads:
         f"the iterator ({max(threads_list)})."
     )
 
-iterators = (engines, threads_list)
+iterators = (threads_list, engines)
 pool = itertools.product(*iterators)
 
 # Benchmarks
 # ----------
 n_runs = 3
 
-dims = ("engine", "threads")
-coords = {"engine": engines, "threads": threads_list}
+dims = ("threads", "engine")
+coords = {"threads": threads_list, "engine": engines}
 data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
 
 
 # Run benchmarks
 # --------------
-for index, (engine, threads) in enumerate(pool):
+for index, (threads, engine) in enumerate(pool):
     if index > 0:
         print()
     print("Running benchmark")
     print("-----------------")
-    print(f"  engine: {engine} \n" f"  threads: {threads} \n")
+    print(f"  threads: {threads} \n" f"  engine: {engine}")
 
     # Define survey
     survey = create_survey(grid_coords)
@@ -112,7 +112,7 @@ for index, (engine, threads) in enumerate(pool):
     runtime, std = benchmarker.benchmark(susceptibility)
 
     # Save results
-    indices = dict(engine=engine, threads=threads)
+    indices = dict(threads=threads, engine=engine)
     results.times.loc[indices] = runtime
     results.times_std.loc[indices] = std
 
