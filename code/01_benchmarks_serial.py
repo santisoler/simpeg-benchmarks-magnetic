@@ -39,11 +39,13 @@ if not results_dir.exists():
 # ---------------
 forward_only_values = [True, False]
 n_cells_values = [n**3 for n in n_cells_per_axis]
+tmi_values = [True, False]
 engines = ["choclo", "geoana"]
 
 iterators = (
     forward_only_values,
     n_cells_values,
+    tmi_values,
     engines,
 )
 pool = itertools.product(*iterators)
@@ -53,10 +55,11 @@ pool = itertools.product(*iterators)
 # ----------
 n_runs = 3
 
-dims = ("forward_only", "n_cells", "engine")
+dims = ("forward_only", "n_cells", "tmi", "engine")
 coords = {
     "forward_only": forward_only_values,
     "n_cells": n_cells_values,
+    "tmi": tmi_values,
     "engine": engines,
 }
 data_names = ["times", "times_std"]
@@ -65,6 +68,7 @@ results = create_dataset(dims, coords, data_names)
 for index, (
     forward_only,
     n_cells,
+    tmi,
     engine,
 ) in enumerate(pool):
     if index > 0:
@@ -74,12 +78,12 @@ for index, (
     print(
         f"  forward_only: {forward_only} \n"
         f"  n_cells: {n_cells} \n"
+        f"  tmi: {tmi} \n"
         f"  engine: {engine}"
     )
 
-    mesh_shape = tuple(int(n_cells ** (1 / 3)) for _ in range(3))
-
     # Define mesh
+    mesh_shape = tuple(int(n_cells ** (1 / 3)) for _ in range(3))
     mesh, active_cells = create_tensor_mesh(mesh_shape, mesh_spacings)
     n_active_cells = np.sum(active_cells)
     susceptibility = create_susceptibilty(n_active_cells)
@@ -87,7 +91,8 @@ for index, (
 
     # Define receivers and survey
     grid_coords = create_observation_points(get_region(mesh), grid_shape, height)
-    survey = create_survey(grid_coords)
+    components = "tmi" if tmi else ["bx", "by", "bz"]  # choose components
+    survey = create_survey(grid_coords, components=components)
 
     # Define benchmarker
     store_sensitivities = "forward_only" if forward_only else "ram"
@@ -113,6 +118,7 @@ for index, (
     indices = dict(
         forward_only=forward_only,
         n_cells=n_cells,
+        tmi=tmi,
         engine=engine,
     )
     results.times.loc[indices] = runtime
