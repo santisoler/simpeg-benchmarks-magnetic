@@ -34,8 +34,8 @@ if not results_dir.exists():
 
 # Create iterator
 # ---------------
-parallelization = [True, False]
 forward_only_values = [False, True]
+parallelization = [True, False]
 n_receivers_values = [n**2 for n in n_receivers_per_side]
 engines = ["choclo", "geoana"]
 
