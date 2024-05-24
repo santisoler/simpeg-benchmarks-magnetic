@@ -21,7 +21,7 @@ from utilities import (
 # Define some variables common to all benchmarks
 # ----------------------------------------------
 n_receivers_per_side = [20, 40, 60, 80]
-mesh_shape = tuple(70 for _ in range(3))
+mesh_shape = tuple(40 for _ in range(3))
 
 height = 100  # height of the observation points
 mesh_spacings = (10, 10, 5)
