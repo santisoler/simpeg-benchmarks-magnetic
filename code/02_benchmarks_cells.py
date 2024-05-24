@@ -34,12 +34,12 @@ if not results_dir.exists():
 
 # Create iterator
 # ---------------
-engines = ["choclo", "geoana"]
-parallelization = [True, False]
 forward_only_values = [True, False]
+parallelization = [False, True]
 n_cells_values = [n**3 for n in n_cells_per_axis]
+engines = ["choclo", "geoana"]
 
-iterators = (parallelization, forward_only_values, n_cells_values, engines)
+iterators = (forward_only_values, parallelization, n_cells_values, engines)
 pool = itertools.product(*iterators)
 
 
@@ -47,26 +47,26 @@ pool = itertools.product(*iterators)
 # ----------
 n_runs = 3
 
-dims = ("parallel", "forward_only", "n_cells", "engine")
+dims = ("forward_only", "parallel", "n_cells", "engine")
 coords = {
-    "parallel": parallelization,
     "forward_only": forward_only_values,
+    "parallel": parallelization,
     "n_cells": n_cells_values,
     "engine": engines,
 }
 data_names = ["times", "times_std"]
 results = create_dataset(dims, coords, data_names)
 
-for index, (parallel, forward_only, n_cells, engine) in enumerate(pool):
+for index, (forward_only, parallel, n_cells, engine) in enumerate(pool):
     if index > 0:
         print()
     print("Running benchmark")
     print("-----------------")
     print(
-        f"  parallel: {parallel} \n"
         f"  forward_only: {forward_only} \n"
-        f"  n_cells: {n_cells}"
-        f"  engine: {engine} \n"
+        f"  parallel: {parallel} \n"
+        f"  n_cells: {n_cells} \n"
+        f"  engine: {engine}"
     )
 
     mesh_shape = tuple(int(n_cells ** (1 / 3)) for _ in range(3))
@@ -103,8 +103,8 @@ for index, (parallel, forward_only, n_cells, engine) in enumerate(pool):
 
     # Save results
     indices = dict(
-        parallel=parallel,
         forward_only=forward_only,
+        parallel=parallel,
         n_cells=n_cells,
         engine=engine,
     )
