@@ -117,4 +117,4 @@ for index, (engine, threads) in enumerate(pool):
     results.times_std.loc[indices] = std
 
     # Write results to file
-    results.to_netcdf(results_dir / "benchmarks_threads.nc")
+    results.to_netcdf(results_dir / "benchmarks-threads.nc")
