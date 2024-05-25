@@ -115,6 +115,7 @@ for index, (
         n_cells=n_cells,
         field=field,
     )
+    assert results.times.loc[indices].size == 1
     results.times.loc[indices] = runtime
     results.times_std.loc[indices] = std
 

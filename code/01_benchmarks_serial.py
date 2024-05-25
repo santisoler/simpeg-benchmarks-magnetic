@@ -124,6 +124,7 @@ for index, (
         field=field,
         engine=engine,
     )
+    assert results.times.loc[indices].size == 1
     results.times.loc[indices] = runtime
     results.times_std.loc[indices] = std
 
