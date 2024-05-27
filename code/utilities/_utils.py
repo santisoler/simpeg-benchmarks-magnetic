@@ -31,12 +31,29 @@ def create_tensor_mesh(shape, spacings):
     return mesh, active_cells
 
 
-def create_susceptibilty(size):
+def create_susceptibilty(size, vector=False):
     """
-    Create a random susceptibility array
+    Create a random susceptibility array.
+
+    Parameters
+    ----------
+    size : int
+        Number of susceptibility values that will be generated.
+        If ``vector`` is True, then the returning array will contain three
+        times ``size`` elements.
+    vector : bool, optional
+        Whether to return effective susceptibility array (single array with
+        3 times
+        ``size`` elements), or a single susceptibility array (with ``size``
+        elements)`.
+
+    Returns
+    -------
+    numpy.ndarray
     """
-    # Create random susceptibility array
     rng = np.random.default_rng(seed=42)
+    if vector:
+        size *= 3
     susceptibility = rng.uniform(low=1e-8, high=1e-2, size=size)
     return susceptibility
 
