@@ -130,4 +130,4 @@ for index, (
     results.times_std.loc[indices] = std
 
     # Write results to file
-    results.to_netcdf(results_dir / "benchmarks-parallel-vector.nc")
+    results.to_netcdf(results_dir / "benchmarks-serial-vector.nc")
