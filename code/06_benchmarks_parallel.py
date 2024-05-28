@@ -3,6 +3,10 @@ Benchmark magnetic simulation in parallel using a vector model.
 
 Run similar benchmarks to `02_benchmarks_parallel.py`, but using a vector
 model.
+
+The benchmarks with geoana run out of memory as the size of the problem
+increases, so we are going to benchmark all runs with choclo first, and then
+with geoana until the process is killed.
 """
 
 from pathlib import Path
@@ -43,10 +47,10 @@ fields = ["tmi", "b"]
 engines = ["choclo", "geoana"]
 
 iterators = (
+    engines,  # put engines in the top so we iterate first over choclo
     forward_only_values,
     n_cells_values,
     fields,
-    engines,
 )
 pool = itertools.product(*iterators)
 
@@ -67,10 +71,10 @@ results = create_dataset(dims, coords, data_names)
 results.attrs = dict(n_receivers=np.prod(grid_shape))
 
 for index, (
+    engine,
     forward_only,
     n_cells,
     field,
-    engine,
 ) in enumerate(pool):
     if index > 0:
         print()
