@@ -13,9 +13,16 @@ dependencies:
   # Jupyter
   - jupyter
   - jupytext
-  # SimPEG and dependencies
+  # SimPEG's optional dependencies
   - dask
   - choclo
-  - discretize
+  # SimPEG requirements
+  - numpy>=1.21
+  - scipy>=1.8
+  - pymatsolver>=0.2
+  - matplotlib
+  - discretize>=0.10
+  - geoana>=0.5.0
+  - empymod>=2.0.0
   - pip:
-    - git+https://github.com/simpeg/simpeg.git@334050e7f57350e3efc2b989de83c3f5e045ea64
+    - git+https://github.com/simpeg/simpeg.git@88e62352b023f5f2574ffc8f19e9a5c249f15f12
